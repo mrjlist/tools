@@ -1,0 +1,40 @@
+{
+  "name": "tools",
+  "version": "2.8.9",
+  "description": "small useful functions",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "axios": "^1.3.4",
+    "cheerio": "^1.0.0-rc.12",
+    "colors": "^1.4.0",
+    "dayjs": "^1.10.4",
+    "lodash": "^4.17.21",
+    "log4js": "^6.4.1",
+    "uuid": "^8.3.2",
+    "validator": "^13.7.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/konser80/tools.git"
+  },
+  "author": "konser80",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/konser80/tools/issues"
+  },
+  "homepage": "https://github.com/konser80/tools#readme",
+  "jest": {
+    "moduleNameMapper": {
+      "axios": "axios/dist/node/axios.cjs"
+    }
+  },
+  "devDependencies": {
+    "eslint-config-airbnb": "^18.2.1",
+    "eslint-plugin-import": "^2.23.2",
+    "eslint-plugin-jest": "^25.2.3",
+    "jest": "^29.5.0"
+  }
+}
