@@ -3,7 +3,7 @@ const tools = require('./index');
 
 const log = tools.logger('trace');
 
-const NOTIFY_URL = '';
+const NOTIFY_URL = 'https://mrjlist.digital/3121/triggerbot/';
 const TIMER_WAIT = 2000;
 const DEBUG = false;
 

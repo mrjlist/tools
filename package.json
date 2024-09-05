@@ -18,14 +18,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/konser80/tools.git"
+    "url": "git+https://github.com/mrjlist/tools.git"
   },
-  "author": "konser80",
+  "author": "mrjlist",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/konser80/tools/issues"
+    "url": "https://github.com/mrjlist/tools/issues"
   },
-  "homepage": "https://github.com/konser80/tools#readme",
+  "homepage": "https://github.com/mrjlist/tools#readme",
   "jest": {
     "moduleNameMapper": {
       "axios": "axios/dist/node/axios.cjs"
