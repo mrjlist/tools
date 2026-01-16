@@ -93,17 +93,34 @@ function configureLogger(minlevel = 'silly', opts = {}) {
 
   appenders.show = { type: 'logLevelFilter', appender: 'console', level: minlevel };
 
-  log4js.configure({
-    levels: {
-      SILLY: { value: 2500, colour: 'cyan' }
-    },
-    appenders,
-    categories: {
-      default: { appenders: ['show', 'savetrace', 'saveerror'], level: 'silly' }
-    }
-  });
+  // Диагностика: выводим конфигурацию перед применением
+  const nativeLog = console.log.bind(console);
+  nativeLog('[TOOLS LOGGER] Configuring log4js with:', JSON.stringify({
+    isClusterMode,
+    isPM2,
+    pm2Multiprocess: opts.pm2Multiprocess,
+    appenders: Object.keys(appenders)
+  }, null, 2));
+
+  try {
+    log4js.configure({
+      levels: {
+        SILLY: { value: 2500, colour: 'cyan' }
+      },
+      appenders,
+      categories: {
+        default: { appenders: ['show', 'savetrace', 'saveerror'], level: 'silly' }
+      }
+    });
+    nativeLog('[TOOLS LOGGER] log4js.configure() successful!');
+  } catch (err) {
+    console.error('[TOOLS LOGGER] ERROR in log4js.configure():', err);
+    throw err;
+  }
 
   const logger = log4js.getLogger();
+  nativeLog('[TOOLS LOGGER] Logger instance created!');
+
   console.log = (msg) => logger.trace(msg);
   console.info = (msg) => logger.debug(msg);
   console.warn = (msg) => logger.warn(msg);
