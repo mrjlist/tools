@@ -31,42 +31,52 @@ log.warn('Warning message');
 log.error('Error message');
 ```
 
-### Cluster mode support
+### PM2 Cluster mode support
 
-For projects using Node.js cluster mode, enable `cluster: true` option:
+For projects using PM2 cluster mode, enable `cluster: true` option:
 
 ```javascript
-const cluster = require('cluster');
 const tools = require('@mrjlist/tools');
 
 const log = tools.logger('trace', {
   hourly: false,
-  cluster: true  // Включает поддержку cluster mode
+  cluster: true  // Включает поддержку PM2 cluster mode
 });
 
-if (cluster.isMaster || cluster.isPrimary) {
-  // Master process
-  console.log('Master process started');
-
-  // Fork workers
-  for (let i = 0; i < 4; i++) {
-    cluster.fork();
-  }
-} else {
-  // Worker process
-  log.info(`Worker ${process.pid} started`);
-}
+log.info('Application started');
+log.debug('Worker ready');
 ```
 
-When `cluster: true` is enabled:
-- Master process writes logs to files
-- Worker processes send logs to master via multiprocess appender
-- Prevents file conflicts when multiple workers log simultaneously
+**PM2 configuration** (ecosystem.config.js):
+```javascript
+module.exports = {
+  apps: [{
+    name: 'app',
+    script: './app.js',
+    instances: 4,  // or 'max'
+    exec_mode: 'cluster'
+  }]
+};
+```
 
-See [cluster-example.js](docs/cluster-example.js) for a complete example.
+When `cluster: true` is enabled with PM2:
+- **By default**: Each PM2 instance writes to separate files (`trace-0.log`, `trace-1.log`, etc.)
+- **With `pm2Multiprocess: true`**: All instances write to common files (requires `pm2-intercom`)
+- Automatically detects PM2 via `process.env.pm_id`
+- Prevents file conflicts when multiple instances log simultaneously
+
+**Using common log file** (all PM2 instances write to one file):
+```javascript
+const log = tools.logger('trace', {
+  hourly: false,
+  cluster: true,
+  pm2Multiprocess: true  // Requires: npm install pm2-intercom
+});
+```
 
 ### Options
 
 - `level` - minimum log level: 'silly', 'trace', 'debug', 'info', 'warn', 'error'
 - `hourly` - when `true`, creates hourly log files (default: `false`)
-- `cluster` - enables cluster mode support (default: `false`)
+- `cluster` - enables PM2 cluster mode support (default: `false`)
+- `pm2Multiprocess` - use common log file for all PM2 instances (default: `false`, requires pm2-intercom)

@@ -1,6 +1,5 @@
 const log4js = require('log4js');
 const dayjs = require('dayjs');
-const cluster = require('cluster');
 const { timetotf } = require('./timeframes');
 const { textify } = require('./textify');
 require('colors');
@@ -18,23 +17,53 @@ function configureLogger(minlevel = 'silly', opts = {}) {
   const layout = { type: 'pretty' };
   log4js.addLayout('pretty', () => formatLog4JS);
 
-  // Определяем режим работы (cluster или нет)
+  // Определяем режим работы (cluster/PM2 или нет)
   const isClusterMode = opts.cluster === true;
-  const isMaster = cluster.isMaster || cluster.isPrimary;
+  const isPM2 = process.env.pm_id !== undefined || process.env.NODE_APP_INSTANCE !== undefined;
 
   // Базовая конфигурация appenders
   const appenders = {
     console: { layout, type: 'stdout' }
   };
 
-  // В cluster mode: master записывает в файлы, workers отправляют логи master'у
-  if (isClusterMode) {
-    if (isMaster) {
-      // Master процесс: принимает логи от workers и записывает в файлы
+  // PM2 cluster mode: каждый процесс пишет в общие файлы с использованием multiprocess или flags: 'a'
+  if (isClusterMode && isPM2) {
+    // Для PM2 используем multiprocess appender или отдельные файлы на процесс
+    const pm2Id = process.env.pm_id || process.env.NODE_APP_INSTANCE || '0';
+
+    // Вариант 1: Общие файлы с multiprocess (требует установки pm2-intercom)
+    if (opts.pm2Multiprocess === true) {
+      appenders.tracefile = {
+        layout,
+        type: 'multiprocess',
+        mode: 'master',
+        logvault: true,
+        appender: {
+          type: 'dateFile',
+          filename: 'logs/trace.log',
+          pattern: `old/yyyy-MM/${tracePattern}`,
+          keepFileExt: true,
+        }
+      };
+
+      appenders.errorfile = {
+        layout,
+        type: 'multiprocess',
+        mode: 'master',
+        logvault: true,
+        appender: {
+          type: 'dateFile',
+          filename: 'logs/error.log',
+          pattern: 'old/yyyy-MM',
+          keepFileExt: true
+        }
+      };
+    } else {
+      // Вариант 2 (по умолчанию): Раздельные файлы для каждого PM2 процесса
       appenders.tracefile = {
         layout,
         type: 'dateFile',
-        filename: 'logs/trace.log',
+        filename: `logs/trace-${pm2Id}.log`,
         pattern: `old/yyyy-MM/${tracePattern}`,
         keepFileExt: true,
       };
@@ -42,22 +71,16 @@ function configureLogger(minlevel = 'silly', opts = {}) {
       appenders.errorfile = {
         layout,
         type: 'dateFile',
-        filename: 'logs/error.log',
+        filename: `logs/error-${pm2Id}.log`,
         pattern: 'old/yyyy-MM',
         keepFileExt: true
       };
-
-      appenders.savetrace = { type: 'logLevelFilter', appender: 'tracefile', level: 'trace' };
-      appenders.saveerror = { type: 'logLevelFilter', appender: 'errorfile', level: 'warn' };
-    } else {
-      // Worker процесс: отправляет логи через multiprocess appender
-      appenders.tracefile = { type: 'multiprocess', mode: 'worker', appender: 'tracefile' };
-      appenders.errorfile = { type: 'multiprocess', mode: 'worker', appender: 'errorfile' };
-      appenders.savetrace = { type: 'logLevelFilter', appender: 'tracefile', level: 'trace' };
-      appenders.saveerror = { type: 'logLevelFilter', appender: 'errorfile', level: 'warn' };
     }
+
+    appenders.savetrace = { type: 'logLevelFilter', appender: 'tracefile', level: 'trace' };
+    appenders.saveerror = { type: 'logLevelFilter', appender: 'errorfile', level: 'warn' };
   } else {
-    // Обычный режим (без cluster)
+    // Обычный режим (без cluster/PM2)
     appenders.tracefile = {
       layout,
       type: 'dateFile',
@@ -87,7 +110,9 @@ function configureLogger(minlevel = 'silly', opts = {}) {
     appenders,
     categories: {
       default: { appenders: ['show', 'savetrace', 'saveerror'], level: 'silly' }
-    }
+    },
+    pm2: isPM2,
+    pm2InstanceVar: 'pm_id'
   });
 
   const logger = log4js.getLogger();
