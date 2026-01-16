@@ -95,12 +95,17 @@ function configureLogger(minlevel = 'silly', opts = {}) {
 
   // Диагностика: выводим конфигурацию перед применением
   const nativeLog = console.log.bind(console);
-  nativeLog('[TOOLS LOGGER] Configuring log4js with:', JSON.stringify({
-    isClusterMode,
-    isPM2,
-    pm2Multiprocess: opts.pm2Multiprocess,
-    appenders: Object.keys(appenders)
-  }, null, 2));
+  nativeLog('[TOOLS LOGGER] isClusterMode:', isClusterMode, 'isPM2:', isPM2, 'pm2Multiprocess:', opts.pm2Multiprocess);
+  nativeLog('[TOOLS LOGGER] appenders:', Object.keys(appenders));
+
+  // Выводим конфигурацию tracefile
+  if (appenders.tracefile) {
+    nativeLog('[TOOLS LOGGER] tracefile config:', {
+      type: appenders.tracefile.type,
+      filename: appenders.tracefile.filename,
+      pattern: appenders.tracefile.pattern
+    });
+  }
 
   try {
     log4js.configure({
@@ -120,6 +125,9 @@ function configureLogger(minlevel = 'silly', opts = {}) {
 
   const logger = log4js.getLogger();
   nativeLog('[TOOLS LOGGER] Logger instance created!');
+
+  // ТЕСТ: Попробуем сразу записать что-то в лог
+  logger.info('[TOOLS LOGGER] Test log message immediately after creation');
 
   console.log = (msg) => logger.trace(msg);
   console.info = (msg) => logger.debug(msg);
