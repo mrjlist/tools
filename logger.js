@@ -100,9 +100,7 @@ function configureLogger(minlevel = 'silly', opts = {}) {
     appenders,
     categories: {
       default: { appenders: ['show', 'savetrace', 'saveerror'], level: 'silly' }
-    },
-    pm2: isPM2,
-    pm2InstanceVar: 'pm_id'
+    }
   });
 
   const logger = log4js.getLogger();
