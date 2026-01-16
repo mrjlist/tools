@@ -38,9 +38,7 @@ function configureLogger(minlevel = 'silly', opts = {}) {
         type: 'dateFile',
         filename: 'logs/trace.log',
         pattern: `old/yyyy-MM/${tracePattern}`,
-        keepFileExt: true,
-        flags: 'a',  // Append mode для безопасной записи из нескольких процессов
-        alwaysIncludePattern: false
+        keepFileExt: true
       };
 
       appenders.errorfile = {
@@ -48,9 +46,7 @@ function configureLogger(minlevel = 'silly', opts = {}) {
         type: 'dateFile',
         filename: 'logs/error.log',
         pattern: 'old/yyyy-MM',
-        keepFileExt: true,
-        flags: 'a',  // Append mode для безопасной записи из нескольких процессов
-        alwaysIncludePattern: false
+        keepFileExt: true
       };
     } else {
       // Вариант 2 (по умолчанию): Раздельные файлы для каждого PM2 процесса
