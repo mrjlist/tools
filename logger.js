@@ -1,5 +1,6 @@
 const log4js = require('log4js');
 const dayjs = require('dayjs');
+const cluster = require('cluster');
 const { timetotf } = require('./timeframes');
 const { textify } = require('./textify');
 require('colors');
@@ -16,44 +17,74 @@ function configureLogger(minlevel = 'silly', opts = {}) {
 
   const layout = { type: 'pretty' };
   log4js.addLayout('pretty', () => formatLog4JS);
-  log4js.configure({
-    levels: {
-      SILLY: { value: 2500, colour: 'cyan' }
-    },
-    appenders: {
-      console: { layout, type: 'stdout' },
 
-      tracefile: {
+  // Определяем режим работы (cluster или нет)
+  const isClusterMode = opts.cluster === true;
+  const isMaster = cluster.isMaster || cluster.isPrimary;
+
+  // Базовая конфигурация appenders
+  const appenders = {
+    console: { layout, type: 'stdout' }
+  };
+
+  // В cluster mode: master записывает в файлы, workers отправляют логи master'у
+  if (isClusterMode) {
+    if (isMaster) {
+      // Master процесс: принимает логи от workers и записывает в файлы
+      appenders.tracefile = {
         layout,
         type: 'dateFile',
         filename: 'logs/trace.log',
         pattern: `old/yyyy-MM/${tracePattern}`,
         keepFileExt: true,
-        // numBackups: 5
-      },
+      };
 
-      // debugfile: {
-      //   layout,
-      //   type: 'dateFile',
-      //   filename: 'logs/debug.log',
-      //   pattern: 'old/yyyy-MM/yyyy-MM-dd',
-      //   keepFileExt: true
-      // },
-
-      errorfile: {
+      appenders.errorfile = {
         layout,
         type: 'dateFile',
         filename: 'logs/error.log',
         pattern: 'old/yyyy-MM',
         keepFileExt: true
-      },
+      };
 
-      show: { type: 'logLevelFilter', appender: 'console', level: minlevel },
+      appenders.savetrace = { type: 'logLevelFilter', appender: 'tracefile', level: 'trace' };
+      appenders.saveerror = { type: 'logLevelFilter', appender: 'errorfile', level: 'warn' };
+    } else {
+      // Worker процесс: отправляет логи через multiprocess appender
+      appenders.tracefile = { type: 'multiprocess', mode: 'worker', appender: 'tracefile' };
+      appenders.errorfile = { type: 'multiprocess', mode: 'worker', appender: 'errorfile' };
+      appenders.savetrace = { type: 'logLevelFilter', appender: 'tracefile', level: 'trace' };
+      appenders.saveerror = { type: 'logLevelFilter', appender: 'errorfile', level: 'warn' };
+    }
+  } else {
+    // Обычный режим (без cluster)
+    appenders.tracefile = {
+      layout,
+      type: 'dateFile',
+      filename: 'logs/trace.log',
+      pattern: `old/yyyy-MM/${tracePattern}`,
+      keepFileExt: true,
+    };
 
-      savetrace: { type: 'logLevelFilter', appender: 'tracefile', level: 'trace' },
-      // savedebug: { type: 'logLevelFilter', appender: 'debugfile', level: 'debug' },
-      saveerror: { type: 'logLevelFilter', appender: 'errorfile', level: 'warn' },
+    appenders.errorfile = {
+      layout,
+      type: 'dateFile',
+      filename: 'logs/error.log',
+      pattern: 'old/yyyy-MM',
+      keepFileExt: true
+    };
+
+    appenders.savetrace = { type: 'logLevelFilter', appender: 'tracefile', level: 'trace' };
+    appenders.saveerror = { type: 'logLevelFilter', appender: 'errorfile', level: 'warn' };
+  }
+
+  appenders.show = { type: 'logLevelFilter', appender: 'console', level: minlevel };
+
+  log4js.configure({
+    levels: {
+      SILLY: { value: 2500, colour: 'cyan' }
     },
+    appenders,
     categories: {
       default: { appenders: ['show', 'savetrace', 'saveerror'], level: 'silly' }
     }
