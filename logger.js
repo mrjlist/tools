@@ -31,32 +31,26 @@ function configureLogger(minlevel = 'silly', opts = {}) {
     // Для PM2 используем multiprocess appender или отдельные файлы на процесс
     const pm2Id = process.env.pm_id || process.env.NODE_APP_INSTANCE || '0';
 
-    // Вариант 1: Общие файлы с multiprocess (требует установки pm2-intercom)
+    // Вариант 1: Общие файлы для PM2 кластера (безопасная запись из нескольких процессов)
     if (opts.pm2Multiprocess === true) {
       appenders.tracefile = {
         layout,
-        type: 'multiprocess',
-        mode: 'master',
-        logvault: true,
-        appender: {
-          type: 'dateFile',
-          filename: 'logs/trace.log',
-          pattern: `old/yyyy-MM/${tracePattern}`,
-          keepFileExt: true,
-        }
+        type: 'dateFile',
+        filename: 'logs/trace.log',
+        pattern: `old/yyyy-MM/${tracePattern}`,
+        keepFileExt: true,
+        flags: 'a',  // Append mode для безопасной записи из нескольких процессов
+        alwaysIncludePattern: false
       };
 
       appenders.errorfile = {
         layout,
-        type: 'multiprocess',
-        mode: 'master',
-        logvault: true,
-        appender: {
-          type: 'dateFile',
-          filename: 'logs/error.log',
-          pattern: 'old/yyyy-MM',
-          keepFileExt: true
-        }
+        type: 'dateFile',
+        filename: 'logs/error.log',
+        pattern: 'old/yyyy-MM',
+        keepFileExt: true,
+        flags: 'a',  // Append mode для безопасной записи из нескольких процессов
+        alwaysIncludePattern: false
       };
     } else {
       // Вариант 2 (по умолчанию): Раздельные файлы для каждого PM2 процесса
